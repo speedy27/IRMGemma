@@ -28,8 +28,11 @@ import {
   Trash2,
   X,
   Minimize2,
+  AlertCircle,
 } from "lucide-react"
 import Image from "next/image"
+import { MedGemmaService } from "@/lib/medgemma-service"
+import type { AnalysisResult as MedGemmaAnalysisResult } from "@/lib/medgemma-service"
 
 interface Message {
   id: string
@@ -38,25 +41,20 @@ interface Message {
   timestamp: Date
 }
 
-interface AnalysisResult {
-  hypothesis: string
-  confidence: number
-  observations: string[]
-  severity: "low" | "medium" | "high"
-  fullReport: string
-}
-
 interface UploadedImage {
   id: string
   name: string
   url: string
   type: string
+  file?: File
 }
 
 export default function MedGemmaInterface() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [scanProgress, setScanProgress] = useState(0)
   const [analysisComplete, setAnalysisComplete] = useState(false)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const [analysisResult, setAnalysisResult] = useState<MedGemmaAnalysisResult | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState("")
   const [clinicalContext, setClinicalContext] = useState("")
@@ -69,53 +67,22 @@ export default function MedGemmaInterface() {
   const [hoveredImageId, setHoveredImageId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [analysisResult] = useState<AnalysisResult>({
-    hypothesis: "Suspicion d'infarctus ischémique frontal droit",
-    confidence: 87,
-    observations: [
-      "Zone hypodense dans le territoire de l'artère cérébrale moyenne droite",
-      "Absence d'hémorragie visible",
-      "Légère compression du ventricule latéral droit",
-      "Structures médianes préservées",
-    ],
-    severity: "high",
-    fullReport: `ANALYSE DÉTAILLÉE MEDGEMMA
-
-CONTEXTE CLINIQUE:
-Patient de 68 ans présentant une hémiplégie droite d'installation brutale avec troubles de la parole.
-
-TECHNIQUE:
-Scanner cérébral sans injection de produit de contraste.
-
-OBSERVATIONS:
-- Zone hypodense bien délimitée dans le territoire de l'artère cérébrale moyenne droite, compatible avec un infarctus ischémique récent
-- Absence d'hémorragie intracrânienne
-- Légère compression du ventricule latéral droit par effet de masse modéré
-- Structures médianes préservées sans déviation significative
-- Système ventriculaire par ailleurs normal
-- Absence d'autres lésions parenchymateuses visibles
-
-CONCLUSION:
-Infarctus ischémique récent dans le territoire de l'artère cérébrale moyenne droite.
-Absence de signes d'hémorragie.
-Corrélation clinico-radiologique cohérente.
-
-RECOMMANDATIONS:
-- IRM cérébrale avec séquences de diffusion pour confirmation et datation précise
-- Bilan étiologique de l'AVC (échographie cardiaque, Holter ECG, bilan biologique)
-- Prise en charge neurologique spécialisée en urgence
-
-SUIVI:
-- Contrôle scanner à 24-48h pour surveillance de l'évolution
-- Réévaluation neurologique quotidienne
-- Surveillance des paramètres vitaux et neurologiques`,
-  })
-
   const handleFileUpload = (files: FileList | null) => {
     if (!files) return
 
     Array.from(files).forEach((file) => {
       if (file.type.startsWith("image/")) {
+        // Valider le fichier
+        if (!MedGemmaService.isValidImageFormat(file)) {
+          console.warn(`Format d'image non supporté: ${file.type}`)
+          return
+        }
+
+        if (!MedGemmaService.isValidImageSize(file)) {
+          console.warn(`Fichier trop volumineux: ${file.name}`)
+          return
+        }
+
         const reader = new FileReader()
         reader.onload = (e) => {
           const newImage: UploadedImage = {
@@ -123,8 +90,9 @@ SUIVI:
             name: file.name,
             url: e.target?.result as string,
             type: file.type,
+            file: file // Conserver le fichier original pour l'envoi
           }
-          setUploadedImages((prev) => [...prev, newImage])
+          setUploadedImages((prev: UploadedImage[]) => [...prev, newImage])
         }
         reader.readAsDataURL(file)
       }
@@ -173,22 +141,44 @@ SUIVI:
     }
   }
 
-  const startAnalysis = () => {
+  const startAnalysis = async () => {
+    if (uploadedImages.length === 0) {
+      setAnalysisError("Aucune image à analyser")
+      return
+    }
+
     setIsAnalyzing(true)
     setAnalysisComplete(false)
+    setAnalysisError(null)
     setScanProgress(0)
 
-    const interval = setInterval(() => {
-      setScanProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsAnalyzing(false)
-          setAnalysisComplete(true)
-          return 100
+    try {
+      console.log('Début de l\'analyse avec MedGemma...')
+      
+      // Appel au service MedGemma
+      const result = await MedGemmaService.analyzeImages(
+        uploadedImages,
+        clinicalContext,
+        (progress) => {
+          setScanProgress(progress)
         }
-        return prev + 2
-      })
-    }, 100)
+      )
+
+      if (result.success && result.analysis) {
+        // Mettre à jour l'état avec les résultats de MedGemma
+        setAnalysisResult(result.analysis)
+        setAnalysisComplete(true)
+        console.log('Analyse terminée avec succès')
+      } else {
+        throw new Error(result.error || 'Erreur lors de l\'analyse')
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'analyse:', error)
+      setAnalysisError(error instanceof Error ? error.message : 'Erreur inconnue')
+      setScanProgress(0)
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
 
   const sendMessage = () => {
@@ -452,7 +442,7 @@ SUIVI:
       {/* Partie Droite - Contrôles et Chat */}
       <div className="w-1/2 flex flex-col">
         {/* Vue Analyse Complète */}
-        {fullAnalysisView && analysisComplete ? (
+        {fullAnalysisView && analysisComplete && analysisResult ? (
           <div className="flex-1 p-4">
             <Card className="bg-slate-800 border-slate-700 h-full">
               <CardHeader className="pb-4">
@@ -574,8 +564,19 @@ SUIVI:
                     {isAnalyzing ? "Analyse..." : hasImages ? "Analyser" : "Chargez une image"}
                   </Button>
 
+                  {/* Affichage des erreurs */}
+                  {analysisError && (
+                    <div className="p-3 bg-red-900/30 border border-red-600 rounded-lg">
+                      <div className="flex items-center gap-2 text-red-400">
+                        <AlertCircle className="w-4 h-4" />
+                        <span className="text-sm font-medium">Erreur d'analyse</span>
+                      </div>
+                      <p className="text-xs text-red-300 mt-1">{analysisError}</p>
+                    </div>
+                  )}
+
                   {/* Résultats compacts et expandables */}
-                  {analysisComplete && (
+                  {analysisComplete && analysisResult && (
                     <Collapsible open={expandedResults} onOpenChange={setExpandedResults}>
                       <div className="space-y-2">
                         <div
