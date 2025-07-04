@@ -194,13 +194,29 @@ export default function MedGemmaInterface() {
     setMessages((prev) => [...prev, userMessage])
 
     setTimeout(() => {
+      let responseContent = "";
+      
+      // Réponses prédéfinies basées sur le nombre de messages
+      const messageCount = messages.length;
+      
+      if (messageCount === 0) {
+        // Première question - réponse sur le glioblastome
+        responseContent = "Un glioblastome est le type le plus courant et le plus agressif de tumeur cérébrale maligne chez l'adulte. Pour répondre directement à votre question : oui, c'est une condition très sérieuse qui justifie le niveau d'urgence critique (5/5) et qui nécessite une prise en charge spécialisée immédiate.";
+      } else if (messageCount === 2) {
+        // Deuxième question - réponse sur la prise en charge
+        responseContent = "PRISE EN CHARGE IMMÉDIATE DU PATIENT\n\nLa priorité est de gérer les symptômes liés à la pression que la masse exerce sur le cerveau (l'effet de masse et l'œdème). En vous basant sur votre jugement clinique et les protocoles de votre organisation, voici des actions couramment envisagées dans cette situation :\n\n1. Surveillance Neurologique\n• Surveillez très attentivement son état de conscience (Score de Glasgow)\n• Évaluez régulièrement sa force motrice et les réflexes\n• Vérifiez la réaction des pupilles\n• Toute dégradation rapide est un signe d'alerte majeur\n\n2. Gestion de l'Œdème Cérébral\n• Si vos protocoles le permettent, administrez des corticostéroïdes (dexaméthasone)\n• Objectif : réduire le gonflement autour de la tumeur\n• Aide à soulager les symptômes comme les maux de tête ou les déficits neurologiques\n\n3. Prévention des Crises d'Épilepsie\n• Une telle lésion augmente considérablement le risque de convulsions\n• Assurez-vous d'avoir un traitement antiépileptique d'urgence à portée de main\n• Les benzodiazépines peuvent être utilisées en première intention\n\nIMPORTANT : N'oubliez pas, ces suggestions sont informatives. Votre évaluation clinique du patient reste primordiale.";
+      } else {
+        // Réponse par défaut pour les questions suivantes
+        responseContent = "En me basant sur l'analyse de l'image et le diagnostic probable de glioblastome, je confirme que cette situation requiert une attention médicale immédiate. La prise en charge multidisciplinaire (neurochirurgie, oncologie, radiothérapie) sera essentielle pour établir le plan de traitement optimal.";
+      }
+      
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         type: "ai",
-        content:
-          "Basé sur l'analyse de l'image, cette zone hypodense est cohérente avec un infarctus ischémique récent. La localisation frontale droite peut expliquer les symptômes neurologiques observés. Je recommande une IRM de diffusion pour confirmer le diagnostic.",
+        content: responseContent,
         timestamp: new Date(),
       }
+      
       setMessages((prev) => [...prev, aiResponse])
     }, 1000)
 

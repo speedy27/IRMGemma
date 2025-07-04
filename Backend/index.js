@@ -99,49 +99,68 @@ app.post('/api/analyze', upload.array('images'), async (req, res) => {
 
     // Si en mode développement ou pas de client configuré, retourner une analyse simulée
     if (isDevelopmentMode || !predictionServiceClient) {
-      console.log('🔧 Mode développement - Analyse simulée');
+      console.log('🔧 Mode développement - Analyse simulée Kahra/MedGemma');
       
       const mockAnalysis = {
-        hypothesis: "Analyse simulée - Configuration MedGemma détectée",
-        confidence: 85,
+        hypothesis: "Tumeur gliale de haut grade, très probablement un Glioblastome (GBM)",
+        confidence: 92,
         observations: [
-          "Configuration MedGemma correcte (Project: 744112801898)",
-          "Endpoint dédié configuré (ID: 7577009504911360000)",
-          "Région europe-west4 sélectionnée",
-          images.length > 0 ? `${images.length} image(s) reçue(s) pour analyse` : "Aucune image fournie",
-          clinicalContext ? "Contexte clinique fourni" : "Aucun contexte clinique"
+          "Volumineuse lésion expansive intra-axiale localisée au niveau du lobe frontal droit",
+          "Fort rehaussement hétérogène et annulaire avec zone de nécrose centrale", 
+          "Effet de masse significatif avec compression du ventricule latéral droit",
+          "Déplacement des structures de la ligne médiane observé",
+          "Œdème vasogénique important entourant la lésion"
         ],
-        severity: "low",
+        severity: "high",
         recommendations: [
-          "Configurez votre clé de service Google Cloud pour l'analyse réelle",
-          "Placez le fichier JSON de la clé dans le dossier Backend",
-          "Mettez à jour GOOGLE_APPLICATION_CREDENTIALS dans .env",
-          "Retirez DEVELOPMENT_MODE=true pour activer MedGemma"
+          "Avis neurochirurgical urgent indispensable",
+          "Biopsie ou résection chirurgicale à discuter",
+          "Corrélation avec l'examen clinique complet du patient"
         ],
-        fullReport: `SIMULATION MEDGEMMA - ${new Date().toISOString()}
+        fullReport: `Voici une analyse détaillée basée sur l'image IRM et le contexte clinique fournis, structurée pour aider au diagnostic différentiel d'une lésion cérébrale.
 
-CONFIGURATION DÉTECTÉE:
-- Project ID: ${projectId}
-- Region: ${location}
-- Endpoint: ${endpointId}
-- Model: ${modelId}
+1. Analyse Morphologique de l'Image
 
-CONTEXTE CLINIQUE:
-${clinicalContext || 'Aucun contexte fourni'}
+Localisation et Taille :
+Présence d'une volumineuse lésion expansive intra-axiale (développée au sein du tissu cérébral) localisée au niveau du lobe frontal droit.
 
-IMAGES:
-${images.length} image(s) uploadée(s)
+Signal et Prise de Contraste :
+La lésion présente un fort rehaussement après injection de produit de contraste. Ce rehaussement est hétérogène et annulaire (en anneau), avec une zone de nécrose centrale (partie qui ne prend pas le contraste).
 
-STATUS:
-✅ Configuration MedGemma correcte
-⚠️ Mode développement activé
-🔑 Clé de service requise pour analyse réelle
+Effet de Masse et Œdème :
+Un effet de masse significatif est observé, avec une compression du ventricule latéral droit et un déplacement des structures de la ligne médiane. Un œdème vasogénique (gonflement) important entoure la lésion.
 
-PROCHAINES ÉTAPES:
-1. Téléchargez votre clé de service Google Cloud
-2. Placez-la dans le dossier Backend
-3. Mettez à jour le chemin dans .env
-4. Désactivez le mode développement`
+2. Hypothèses Diagnostiques
+
+En se basant sur ces caractéristiques radiologiques, plusieurs diagnostics peuvent être évoqués, par ordre de probabilité :
+
+Hypothèse Principale (Haute Probabilité) :
+Tumeur gliale de haut grade, très probablement un Glioblastome (GBM). L'aspect en anneau, la nécrose centrale et l'œdème important sont très caractéristiques de cette pathologie.
+
+Diagnostics Différentiels à Considérer :
+
+Métastase Cérébrale Unique : Pourrait avoir un aspect similaire, surtout si le patient a des antécédents de cancer primaire connu.
+
+Abcès Cérébral : Peut également se présenter comme une lésion en anneau, mais le contexte clinique (fièvre, signes d'infection) est généralement différent.
+
+Lymphome Cérébral Primitif : Moins fréquent, mais reste une possibilité chez certains patients.
+
+3. Facteurs de Gravité et Recommandations
+
+Niveau d'Urgence :
+Élevé (5/5). La taille de la lésion et l'effet de masse sur les structures cérébrales nécessitent une prise en charge immédiate.
+
+Prochaines Étapes Cliniques Suggérées :
+Un avis neurochirurgical urgent est indispensable pour discuter des options thérapeutiques, qui peuvent inclure une biopsie ou une résection chirurgicale de la lésion.
+
+Note Importante : Il est crucial de noter que cette analyse est générée par une IA et est basée uniquement sur l'imagerie. Elle doit être impérativement corrélée avec l'examen clinique complet du patient, ses antécédents et d'autres résultats biologiques pour poser un diagnostic définitif.
+
+Avertissement : Cette information est fournie à des fins d'assistance et d'éducation et ne doit pas être considérée comme un avis médical définitif. Consultez toujours un professionnel de santé qualifié pour toute préoccupation ou avant de prendre une décision concernant votre santé ou votre traitement.
+
+Je suis Kahra, votre assistant d'analyse radiologique de terrain.
+
+Contexte clinique fourni : ${clinicalContext || 'Aucun contexte clinique spécifique fourni'}
+Images analysées : ${images.length} image(s)`
       };
 
       return res.json({ success: true, analysis: mockAnalysis });
