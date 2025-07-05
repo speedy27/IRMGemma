@@ -58,14 +58,27 @@ export class MedGemmaService {
         }
       }
 
-      // Simuler le progrès pendant l'upload
+      // Simulation d'une progression réaliste avec délais
       if (onProgress) {
+        // Phase 1: Préparation des données (0-20%)
+        onProgress(0);
+        await this.delay(500);
         onProgress(10);
+        await this.delay(300);
+        onProgress(20);
       }
 
       console.log('Envoi de la requête d\'analyse vers MedGemma...');
       console.log('Nombre d\'images:', images.length);
       console.log('Contexte clinique:', clinicalContext);
+
+      // Phase 2: Upload des images (20-40%)
+      if (onProgress) {
+        await this.delay(400);
+        onProgress(30);
+        await this.delay(400);
+        onProgress(40);
+      }
 
       const response = await apiClient.post<AnalysisResponse>('/api/analyze', formData, {
         headers: {
@@ -73,13 +86,21 @@ export class MedGemmaService {
         },
         onUploadProgress: (progressEvent: AxiosProgressEvent) => {
           if (onProgress && progressEvent.total) {
-            const uploadProgress = Math.round((progressEvent.loaded * 50) / progressEvent.total);
-            onProgress(10 + uploadProgress); // 10-60% pour l'upload
+            const uploadProgress = Math.round((progressEvent.loaded * 20) / progressEvent.total);
+            onProgress(40 + uploadProgress); // 40-60% pour l'upload réel
           }
         },
       });
 
+      // Phase 3: Analyse en cours (60-95%)
       if (onProgress) {
+        await this.delay(600);
+        onProgress(70);
+        await this.delay(800);
+        onProgress(85);
+        await this.delay(700);
+        onProgress(95);
+        await this.delay(300);
         onProgress(100);
       }
 
@@ -139,6 +160,13 @@ export class MedGemmaService {
     const response = await fetch(dataURL);
     const blob = await response.blob();
     return new File([blob], filename, { type: blob.type });
+  }
+
+  /**
+   * Utilitaire pour créer un délai
+   */
+  private static async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**

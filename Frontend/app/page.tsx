@@ -57,7 +57,7 @@ interface UploadedImage {
   file?: File
 }
 
-export default function MedGemmaInterface() {
+export default function KahraInterface() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [scanProgress, setScanProgress] = useState(0)
   const [analysisComplete, setAnalysisComplete] = useState(false)
@@ -209,8 +209,8 @@ export default function MedGemmaInterface() {
       const messageCount = messages.length;
       
       if (messageCount === 0) {
-        // Première question - réponse sur le glioblastome
-        responseContent = "Un glioblastome est le type le plus courant et le plus agressif de tumeur cérébrale maligne chez l'adulte. Pour répondre directement à votre question : oui, c'est une condition très sérieuse qui justifie le niveau d'urgence critique (5/5) et qui nécessite une prise en charge spécialisée immédiate.";
+        // Première question - réponse sur l'hématome
+        responseContent = "It means the bleeding is large enough to physically push and compress the surrounding healthy brain structures. This increases the pressure inside the skull, which is the primary danger";
       } else if (messageCount === 2) {
         // Deuxième question - réponse sur la prise en charge
         responseContent = "PRISE EN CHARGE IMMÉDIATE DU PATIENT\n\nLa priorité est de gérer les symptômes liés à la pression que la masse exerce sur le cerveau (l'effet de masse et l'œdème). En vous basant sur votre jugement clinique et les protocoles de votre organisation, voici des actions couramment envisagées dans cette situation :\n\n1. Surveillance Neurologique\n• Surveillez très attentivement son état de conscience (Score de Glasgow)\n• Évaluez régulièrement sa force motrice et les réflexes\n• Vérifiez la réaction des pupilles\n• Toute dégradation rapide est un signe d'alerte majeur\n\n2. Gestion de l'Œdème Cérébral\n• Si vos protocoles le permettent, administrez des corticostéroïdes (dexaméthasone)\n• Objectif : réduire le gonflement autour de la tumeur\n• Aide à soulager les symptômes comme les maux de tête ou les déficits neurologiques\n\n3. Prévention des Crises d'Épilepsie\n• Une telle lésion augmente considérablement le risque de convulsions\n• Assurez-vous d'avoir un traitement antiépileptique d'urgence à portée de main\n• Les benzodiazépines peuvent être utilisées en première intention\n\nIMPORTANT : N'oubliez pas, ces suggestions sont informatives. Votre évaluation clinique du patient reste primordiale.";
@@ -262,7 +262,7 @@ export default function MedGemmaInterface() {
               <Brain className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-100">MedGemma Analysis</h1>
+              <h1 className="text-lg font-bold text-gray-100">Kahra</h1>
               <p className="text-xs text-gray-400">Analyse d'images médicales IRM</p>
             </div>
           </div>
@@ -417,24 +417,7 @@ export default function MedGemmaInterface() {
                       />
                     )}
 
-                    {/* Overlay des résultats */}
-                    {analysisComplete && (
-                      <div className="absolute inset-0">
-                        <div
-                          className="absolute bg-red-500/20 border-2 border-red-400 rounded"
-                          style={{
-                            top: "35%",
-                            left: "45%",
-                            width: "15%",
-                            height: "20%",
-                          }}
-                        >
-                          <div className="absolute -top-8 left-0 bg-red-500 text-white text-xs px-2 py-1 rounded">
-                            Zone suspecte
-                          </div>
-                        </div>
-                      </div>
-                    )}
+
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2 h-full p-2">
@@ -469,17 +452,28 @@ export default function MedGemmaInterface() {
 
               {/* Barre de progression de l'analyse */}
               {isAnalyzing && (
-                <div className="p-3 border-t border-slate-700 bg-slate-800/50">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-slate-700 rounded-full h-1.5">
+                <div className="p-4 border-t border-slate-700 bg-slate-800/80">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex-1 bg-slate-700 rounded-full h-2.5">
                       <div
-                        className="bg-cyan-400 h-1.5 rounded-full transition-all duration-100"
+                        className="bg-gradient-to-r from-cyan-400 to-blue-500 h-2.5 rounded-full transition-all duration-500 ease-out"
                         style={{ width: `${scanProgress}%` }}
                       />
                     </div>
-                    <span className="text-xs text-gray-400">{scanProgress}%</span>
+                    <span className="text-sm text-gray-300 font-medium">{scanProgress}%</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Analyse en cours par MedGemma...</p>
+                  <div className="space-y-1">
+                    <p className="text-sm text-cyan-400 font-medium">
+                      {scanProgress <= 20 ? "Préparation des données..." :
+                       scanProgress <= 40 ? "Upload des images..." :
+                       scanProgress <= 60 ? "Transmission vers Kahra..." :
+                       scanProgress <= 85 ? "Analyse en cours..." :
+                       "Finalisation de l'analyse..."}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Traitement par l'IA médicale Kahra en cours...
+                    </p>
+                  </div>
                 </div>
               )}
             </>
@@ -506,7 +500,7 @@ export default function MedGemmaInterface() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl font-semibold text-gray-100 flex items-center gap-2">
                       <Brain className="w-6 h-6 text-cyan-400" />
-                      Analyse Détaillée MedGemma
+                      Analyse Détaillée Kahra
                     </CardTitle>
                     <div className="flex gap-2">
                       <Button
@@ -532,7 +526,7 @@ export default function MedGemmaInterface() {
                 <CardContent className="flex-1">
                   <ScrollArea className="h-full">
                     <div className="space-y-6">
-                      {/* Hypothèse principale */}
+                      {/* Main hypothesis */}
                       <div className="p-4 bg-slate-700 rounded-lg border border-slate-600">
                         <div className="flex items-center justify-between mb-3">
                           <h3 className="text-lg font-semibold text-gray-100">Hypothèse Principale</h3>
@@ -586,7 +580,7 @@ export default function MedGemmaInterface() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg font-semibold text-gray-100 flex items-center gap-2">
                         <Brain className="w-5 h-5 text-cyan-400" />
-                        MedGemma Analysis
+                        Kahra
                       </CardTitle>
                       <div className="flex gap-1">
                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
