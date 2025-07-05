@@ -166,7 +166,7 @@ export default function MedGemmaInterface() {
       
       const prompt = clinicalContext 
         ? `Analysez cette image médicale. Contexte clinique: ${clinicalContext}`
-        : "Analysez cette image médicale et fournissez un diagnostic détaillé."
+        : "Analyze this brain MRI (T1 sequence, axial slice) and generate a structured radiology report for medical personnel (radiologists, neurologists, emergency physicians), describing in detail any visible abnormalities (e.g., hemorrhage, mass effect, edema, displacement of structures), their location and severity; also provide (1) an urgency score from 1 (non-urgent) to 5 (life-threatening emergency) with brief justification, (2) a simplified summary understandable by non-specialist professionals (nurses, GPs, family caregivers) explaining the nature and severity of the abnormalities, and (3) use a professional, clear style conforming to hospital standards, structuring the report with the following sections: 'Description', 'Conclusion', 'Urgency Score', and 'Simplified Summary'. Always return the analysis as a json with the following “principal_hypothesis” , “keyObservations”, “completeRapport”"
       
       const result = await ApiService.generate(prompt, imageFile)
       
@@ -234,15 +234,122 @@ export default function MedGemmaInterface() {
   }
 
   const parseApiResponse = (response: string): AnalysisResult => {
-    // Simple parsing logic - in production, you might want more sophisticated parsing
-    const lines = response.split('\n').filter(line => line.trim())
+    console.log('Raw API response:', response)
     
+    try {
+      // Find the part of the response that contains JSON
+      // Look for the "model" section which should contain the actual JSON response
+      const modelMatch = response.match(/model\s*([\s\S]*?)$/i)
+      let jsonContent = modelMatch ? modelMatch[1] : response
+      
+      console.log('JSON content to parse:', jsonContent)
+      
+      // Try to extract JSON from the model response
+      const jsonPatterns = [
+        /```json\s*(\{[\s\S]*?)\s*```/,  // JSON in code blocks (allow incomplete)
+        /```json\s*(\{[\s\S]*?)$/,  // JSON in code blocks till end
+        /(\{[\s\S]*?"principal_hypothesis"[\s\S]*?\})/,  // JSON with principal_hypothesis
+        /(\{[\s\S]*?"keyObservations"[\s\S]*?\})/,  // JSON with keyObservations  
+        /(\{[\s\S]*?"completeRapport"[\s\S]*?\})/,  // JSON with completeRapport
+        /(\{[\s\S]*?\})/,  // Any JSON object
+        /(\{[\s\S]*?)$/  // JSON from start to end (incomplete)
+      ]
+      
+      for (const pattern of jsonPatterns) {
+        const match = jsonContent.match(pattern)
+        if (match) {
+          let jsonStr = match[1]
+          
+          console.log('Attempting to parse:', jsonStr)
+          
+          // Try to fix incomplete JSON by adding missing closing braces and quotes
+          const openBraces = (jsonStr.match(/\{/g) || []).length
+          const closeBraces = (jsonStr.match(/\}/g) || []).length
+          const missingBraces = openBraces - closeBraces
+          
+          // Count quotes to check if we have incomplete strings
+          const quotes = (jsonStr.match(/"/g) || []).length
+          const isIncompleteString = quotes % 2 !== 0
+          
+          // If incomplete, try to close it properly
+          if (isIncompleteString) {
+            jsonStr += '"'
+          }
+          
+          // Handle incomplete completeRapport object
+          if (jsonStr.includes('"completeRapport":') && !jsonStr.includes('"completeRapport": {')) {
+            // If completeRapport is incomplete, try to make it a simple string
+            jsonStr = jsonStr.replace(/"completeRapport":\s*\{[^}]*$/, '"completeRapport": "Rapport complet (contenu tronqué)"')
+          }
+          
+          if (missingBraces > 0) {
+            jsonStr += '}'.repeat(missingBraces)
+          }
+          
+          console.log('Final JSON string to parse:', jsonStr)
+          
+          try {
+            const jsonData = JSON.parse(jsonStr)
+            console.log('Parsed JSON data:', jsonData)
+            
+            if (jsonData.principal_hypothesis || jsonData.keyObservations || jsonData.completeRapport) {
+              // Handle completeRapport if it's an object
+              let fullReport = jsonData.completeRapport
+              if (typeof fullReport === 'object' && fullReport !== null) {
+                // Convert object to formatted string
+                fullReport = Object.entries(fullReport).map(([key, value]) => `${key}: ${value}`).join('\n\n')
+              }
+              
+              return {
+                hypothesis: jsonData.principal_hypothesis || "Aucune hypothèse trouvée",
+                confidence: 85, // Default confidence
+                observations: Array.isArray(jsonData.keyObservations) ? jsonData.keyObservations : [],
+                severity: "medium" as const,
+                fullReport: fullReport || "Rapport complet non disponible"
+              }
+            }
+          } catch (parseError) {
+            console.error('Error parsing JSON match:', parseError)
+            continue
+          }
+        }
+      }
+      
+      // If we still can't parse, try to extract individual fields manually
+      const principalHypothesis = response.match(/"principal_hypothesis":\s*"([^"]*)"/)
+      const keyObservations = response.match(/"keyObservations":\s*\[([\s\S]*?)\]/)
+      const completeRapport = response.match(/"completeRapport":\s*"([^"]*)"/)
+      
+      if (principalHypothesis || keyObservations || completeRapport) {
+        const observations = []
+        if (keyObservations) {
+          const obsMatches = keyObservations[1].match(/"([^"]*)"/g)
+          if (obsMatches) {
+            observations.push(...obsMatches.map(match => match.replace(/"/g, '')))
+          }
+        }
+        
+        return {
+          hypothesis: principalHypothesis ? principalHypothesis[1] : "Aucune hypothèse trouvée",
+          confidence: 85,
+          observations,
+          severity: "medium" as const,
+          fullReport: completeRapport ? completeRapport[1] : "Rapport complet non disponible"
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error parsing JSON response:', error)
+    }
+    
+    console.log('No JSON found, returning default values')
+    // Return default values if no JSON is found
     return {
-      hypothesis: lines[0] || "Analyse générée par MedGemma",
-      confidence: 85, // Default confidence
-      observations: lines.slice(1, 5).map(line => line.replace(/^[-•*]\s*/, '').trim()).filter(Boolean),
+      hypothesis: "Impossible d'analyser la réponse",
+      confidence: 0,
+      observations: [],
       severity: "medium" as const,
-      fullReport: response
+      fullReport: "Analyse non disponible"
     }
   }
 
@@ -522,17 +629,19 @@ export default function MedGemmaInterface() {
                     </div>
 
                     {/* Observations */}
-                    <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-                      <h4 className="text-md font-medium text-gray-300 mb-3">Observations Clés:</h4>
-                      <ul className="space-y-2">
-                        {analysisResult.observations.map((obs, index) => (
-                          <li key={index} className="text-sm text-gray-400 flex items-start gap-3">
-                            <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                            {obs}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    {analysisResult.observations.length > 0 && (
+                      <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                        <h4 className="text-md font-medium text-gray-300 mb-3">Observations Clés:</h4>
+                        <ul className="space-y-2">
+                          {analysisResult.observations.map((obs, index) => (
+                            <li key={index} className="text-sm text-gray-400 flex items-start gap-3">
+                              <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
+                              {obs}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
                     {/* Contexte clinique */}
                     {clinicalContext && (
@@ -656,22 +765,34 @@ export default function MedGemmaInterface() {
                         </div>
 
                         <CollapsibleContent className="space-y-2">
-                          <div className="p-3 bg-slate-700/50 rounded border border-slate-600">
-                            <h4 className="text-sm font-medium text-gray-300 mb-2">Observations:</h4>
-                            <ul className="space-y-1">
-                              {analysisResult.observations.map((obs, index) => (
-                                <li key={index} className="text-xs text-gray-400 flex items-start gap-2">
-                                  <CheckCircle className="w-3 h-3 text-green-400 mt-0.5 flex-shrink-0" />
-                                  {obs}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+                          {analysisResult.observations.length > 0 && (
+                            <div className="p-3 bg-slate-700/50 rounded border border-slate-600">
+                              <h4 className="text-sm font-medium text-gray-300 mb-2">Observations:</h4>
+                              <ul className="space-y-1">
+                                {analysisResult.observations.map((obs, index) => (
+                                  <li key={index} className="text-xs text-gray-400 flex items-start gap-2">
+                                    <CheckCircle className="w-3 h-3 text-green-400 mt-0.5 flex-shrink-0" />
+                                    {obs}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
 
                           {clinicalContext && (
                             <div className="p-2 bg-slate-700/30 rounded border border-slate-600">
                               <h4 className="text-xs font-medium text-gray-300 mb-1">Contexte:</h4>
                               <p className="text-xs text-gray-400">{clinicalContext}</p>
+                            </div>
+                          )}
+
+                          {/* Rapport Complet in compact view */}
+                          {analysisResult.fullReport && analysisResult.fullReport !== "Rapport complet non disponible" && (
+                            <div className="p-2 bg-slate-700/30 rounded border border-slate-600">
+                              <h4 className="text-xs font-medium text-gray-300 mb-1">Rapport Complet:</h4>
+                              <pre className="text-xs text-gray-400 whitespace-pre-wrap font-mono leading-relaxed max-h-32 overflow-y-auto">
+                                {analysisResult.fullReport}
+                              </pre>
                             </div>
                           )}
                         </CollapsibleContent>

@@ -108,7 +108,7 @@ async def generate_text(prompt: Prompt):
             
             out = model.generate(
                 **inputs_mps,
-                max_new_tokens=256
+                max_new_tokens=10000
             )
         answer = processor.decode(out[0], skip_special_tokens=True)
         return {"response": answer}

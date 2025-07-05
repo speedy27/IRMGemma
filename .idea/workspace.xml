@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="53a30f5c-1600-4ad7-9c6b-a3bbafd195c3" name="Changes" comment="Introduce FastAPI endpoints for text and image generation capabilities with model and processor initialization. Add loader utility to handle model loading from Hugging Face.">
-      <change afterPath="$PROJECT_DIR$/Claude.md" afterDir="false" />
+    <list default="true" id="53a30f5c-1600-4ad7-9c6b-a3bbafd195c3" name="Changes" comment="Add API integration for text and image generation with enhanced analysis flow and error handling. Introduce reusable ApiService module.">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Frontend/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/app/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/gemmaApi/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/gemmaApi/api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gemmaApi/test_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/gemmaApi/test_api.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,7 +91,7 @@
       <option name="presentableId" value="Default" />
       <updated>1751656887447</updated>
       <workItem from="1751656888569" duration="7252000" />
-      <workItem from="1751706825555" duration="6277000" />
+      <workItem from="1751706825555" duration="10650000" />
     </task>
     <task id="LOCAL-00001" summary="Add .gitignore file for common development artifacts">
       <option name="closed" value="true" />
@@ -108,7 +109,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751709984477</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Add API integration for text and image generation with enhanced analysis flow and error handling. Introduce reusable ApiService module.">
+      <option name="closed" value="true" />
+      <created>1751713991900</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1751713991900</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -128,7 +137,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Add .gitignore file for common development artifacts" />
     <MESSAGE value="Introduce FastAPI endpoints for text and image generation capabilities with model and processor initialization. Add loader utility to handle model loading from Hugging Face." />
-    <option name="LAST_COMMIT_MESSAGE" value="Introduce FastAPI endpoints for text and image generation capabilities with model and processor initialization. Add loader utility to handle model loading from Hugging Face." />
+    <MESSAGE value="Add API integration for text and image generation with enhanced analysis flow and error handling. Introduce reusable ApiService module." />
+    <option name="LAST_COMMIT_MESSAGE" value="Add API integration for text and image generation with enhanced analysis flow and error handling. Introduce reusable ApiService module." />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
