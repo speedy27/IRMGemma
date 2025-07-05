@@ -502,24 +502,6 @@ export default function MedGemmaInterface() {
                     />
                   )}
 
-                  {/* Overlay des résultats */}
-                  {analysisComplete && (
-                    <div className="absolute inset-0">
-                      <div
-                        className="absolute bg-red-500/20 border-2 border-red-400 rounded"
-                        style={{
-                          top: "35%",
-                          left: "45%",
-                          width: "15%",
-                          height: "20%",
-                        }}
-                      >
-                        <div className="absolute -top-8 left-0 bg-red-500 text-white text-xs px-2 py-1 rounded">
-                          Zone suspecte
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2 h-full p-2">
