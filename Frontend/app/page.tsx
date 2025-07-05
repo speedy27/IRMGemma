@@ -202,11 +202,14 @@ export default function KahraInterface() {
 
     setMessages((prev) => [...prev, userMessage])
 
+    // Calculer le délai avant le setTimeout
+    const messageCount = messages.length;
+    const delay = messageCount === 0 ? 5000 : 1000; // 5 secondes pour la première réponse, 1 seconde pour les autres
+
     setTimeout(() => {
       let responseContent = "";
       
       // Réponses prédéfinies basées sur le nombre de messages
-      const messageCount = messages.length;
       
       if (messageCount === 0) {
         // Première question - réponse sur l'hématome
@@ -227,7 +230,7 @@ export default function KahraInterface() {
       }
       
       setMessages((prev) => [...prev, aiResponse])
-    }, 1000)
+    }, delay)
 
     setInputMessage("")
   }

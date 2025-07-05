@@ -58,13 +58,13 @@ export class MedGemmaService {
         }
       }
 
-      // Simulation d'une progression réaliste avec délais
+      // Simulation d'une progression réaliste avec délais (total ~10 secondes)
       if (onProgress) {
         // Phase 1: Préparation des données (0-20%)
         onProgress(0);
-        await this.delay(500);
+        await this.delay(1000);
         onProgress(10);
-        await this.delay(300);
+        await this.delay(600);
         onProgress(20);
       }
 
@@ -74,9 +74,9 @@ export class MedGemmaService {
 
       // Phase 2: Upload des images (20-40%)
       if (onProgress) {
-        await this.delay(400);
+        await this.delay(800);
         onProgress(30);
-        await this.delay(400);
+        await this.delay(800);
         onProgress(40);
       }
 
@@ -94,13 +94,13 @@ export class MedGemmaService {
 
       // Phase 3: Analyse en cours (60-95%)
       if (onProgress) {
-        await this.delay(600);
+        await this.delay(1200);
         onProgress(70);
-        await this.delay(800);
+        await this.delay(1600);
         onProgress(85);
-        await this.delay(700);
+        await this.delay(1400);
         onProgress(95);
-        await this.delay(300);
+        await this.delay(600);
         onProgress(100);
       }
 
