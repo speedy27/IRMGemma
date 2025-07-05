@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useRef } from "react"
+import { ApiService } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -46,6 +47,10 @@ interface AnalysisResult {
   fullReport: string
 }
 
+interface ApiAnalysisResult {
+  response: string
+}
+
 interface UploadedImage {
   id: string
   name: string
@@ -67,49 +72,10 @@ export default function MedGemmaInterface() {
   const [fullAnalysisView, setFullAnalysisView] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [hoveredImageId, setHoveredImageId] = useState<string | null>(null)
+  const [apiError, setApiError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [analysisResult] = useState<AnalysisResult>({
-    hypothesis: "Suspicion d'infarctus ischémique frontal droit",
-    confidence: 87,
-    observations: [
-      "Zone hypodense dans le territoire de l'artère cérébrale moyenne droite",
-      "Absence d'hémorragie visible",
-      "Légère compression du ventricule latéral droit",
-      "Structures médianes préservées",
-    ],
-    severity: "high",
-    fullReport: `ANALYSE DÉTAILLÉE MEDGEMMA
-
-CONTEXTE CLINIQUE:
-Patient de 68 ans présentant une hémiplégie droite d'installation brutale avec troubles de la parole.
-
-TECHNIQUE:
-Scanner cérébral sans injection de produit de contraste.
-
-OBSERVATIONS:
-- Zone hypodense bien délimitée dans le territoire de l'artère cérébrale moyenne droite, compatible avec un infarctus ischémique récent
-- Absence d'hémorragie intracrânienne
-- Légère compression du ventricule latéral droit par effet de masse modéré
-- Structures médianes préservées sans déviation significative
-- Système ventriculaire par ailleurs normal
-- Absence d'autres lésions parenchymateuses visibles
-
-CONCLUSION:
-Infarctus ischémique récent dans le territoire de l'artère cérébrale moyenne droite.
-Absence de signes d'hémorragie.
-Corrélation clinico-radiologique cohérente.
-
-RECOMMANDATIONS:
-- IRM cérébrale avec séquences de diffusion pour confirmation et datation précise
-- Bilan étiologique de l'AVC (échographie cardiaque, Holter ECG, bilan biologique)
-- Prise en charge neurologique spécialisée en urgence
-
-SUIVI:
-- Contrôle scanner à 24-48h pour surveillance de l'évolution
-- Réévaluation neurologique quotidienne
-- Surveillance des paramètres vitaux et neurologiques`,
-  })
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
 
   const handleFileUpload = (files: FileList | null) => {
     if (!files) return
@@ -173,25 +139,56 @@ SUIVI:
     }
   }
 
-  const startAnalysis = () => {
+  const startAnalysis = async () => {
+    if (!uploadedImages.length) return
+    
     setIsAnalyzing(true)
     setAnalysisComplete(false)
     setScanProgress(0)
-
-    const interval = setInterval(() => {
+    setApiError(null)
+    
+    // Create progress simulation
+    const progressInterval = setInterval(() => {
       setScanProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsAnalyzing(false)
-          setAnalysisComplete(true)
-          return 100
+        if (prev >= 90) {
+          clearInterval(progressInterval)
+          return 90
         }
-        return prev + 2
+        return prev + 5
       })
-    }, 100)
+    }, 200)
+    
+    try {
+      const currentImage = uploadedImages[currentImageIndex]
+      const imageFile = await fetch(currentImage.url)
+        .then(res => res.blob())
+        .then(blob => new File([blob], currentImage.name, { type: currentImage.type }))
+      
+      const prompt = clinicalContext 
+        ? `Analysez cette image médicale. Contexte clinique: ${clinicalContext}`
+        : "Analysez cette image médicale et fournissez un diagnostic détaillé."
+      
+      const result = await ApiService.generate(prompt, imageFile)
+      
+      // Parse the API response into our analysis format
+      const parsedResult = parseApiResponse(result.response)
+      setAnalysisResult(parsedResult)
+      
+      setScanProgress(100)
+      setIsAnalyzing(false)
+      setAnalysisComplete(true)
+      
+    } catch (error) {
+      console.error('Analysis failed:', error)
+      setApiError(error instanceof Error ? error.message : 'Erreur lors de l\'analyse')
+      setIsAnalyzing(false)
+      setScanProgress(0)
+    } finally {
+      clearInterval(progressInterval)
+    }
   }
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!inputMessage.trim()) return
 
     const userMessage: Message = {
@@ -202,23 +199,51 @@ SUIVI:
     }
 
     setMessages((prev) => [...prev, userMessage])
+    setInputMessage("")
 
-    setTimeout(() => {
+    try {
+      let prompt = inputMessage
+      if (analysisResult) {
+        prompt = `Basé sur l'analyse précédente: ${analysisResult.hypothesis}. Question: ${inputMessage}`
+      }
+      
+      const result = await ApiService.generateText(prompt)
+      
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         type: "ai",
-        content:
-          "Basé sur l'analyse de l'image, cette zone hypodense est cohérente avec un infarctus ischémique récent. La localisation frontale droite peut expliquer les symptômes neurologiques observés. Je recommande une IRM de diffusion pour confirmer le diagnostic.",
+        content: result.response,
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, aiResponse])
-    }, 1000)
-
-    setInputMessage("")
+      
+    } catch (error) {
+      console.error('Chat failed:', error)
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: "ai",
+        content: "Désolé, je n'ai pas pu traiter votre demande. Veuillez réessayer.",
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    }
   }
 
   const toggleFullAnalysisView = () => {
     setFullAnalysisView(!fullAnalysisView)
+  }
+
+  const parseApiResponse = (response: string): AnalysisResult => {
+    // Simple parsing logic - in production, you might want more sophisticated parsing
+    const lines = response.split('\n').filter(line => line.trim())
+    
+    return {
+      hypothesis: lines[0] || "Analyse générée par MedGemma",
+      confidence: 85, // Default confidence
+      observations: lines.slice(1, 5).map(line => line.replace(/^[-•*]\s*/, '').trim()).filter(Boolean),
+      severity: "medium" as const,
+      fullReport: response
+    }
   }
 
   const getSeverityColor = (severity: string) => {
@@ -452,7 +477,7 @@ SUIVI:
       {/* Partie Droite - Contrôles et Chat */}
       <div className="w-1/2 flex flex-col">
         {/* Vue Analyse Complète */}
-        {fullAnalysisView && analysisComplete ? (
+        {fullAnalysisView && analysisComplete && analysisResult ? (
           <div className="flex-1 p-4">
             <Card className="bg-slate-800 border-slate-700 h-full">
               <CardHeader className="pb-4">
@@ -563,6 +588,13 @@ SUIVI:
                     />
                   </div>
 
+                  {/* Error display */}
+                  {apiError && (
+                    <div className="p-2 bg-red-900/20 border border-red-500/30 rounded text-red-400 text-sm">
+                      {apiError}
+                    </div>
+                  )}
+
                   {/* Bouton d'analyse compact */}
                   <Button
                     onClick={startAnalysis}
@@ -575,7 +607,7 @@ SUIVI:
                   </Button>
 
                   {/* Résultats compacts et expandables */}
-                  {analysisComplete && (
+                  {analysisComplete && analysisResult && (
                     <Collapsible open={expandedResults} onOpenChange={setExpandedResults}>
                       <div className="space-y-2">
                         <div
@@ -693,7 +725,7 @@ SUIVI:
                         placeholder="Posez une question..."
                         value={inputMessage}
                         onChange={(e) => setInputMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+                        onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
                         className="bg-slate-700 border-slate-600 text-gray-100 placeholder-gray-400"
                       />
                       <Button onClick={sendMessage} size="icon" className="bg-cyan-600 hover:bg-cyan-700">

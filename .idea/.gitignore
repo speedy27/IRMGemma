@@ -1,0 +1,24 @@
+###############################################################################
+# JetBrains / IntelliJ IDEA
+###############################################################################
+# Project‐level settings, workspace metadata and local history
+/.idea/
+*.iws
+*.iml
+*.ipr
+
+# Run/debug configurations
+.idea/runConfigurations/
+
+# Local history, caches, index & logs
+/.idea/**/shelf/
+/.idea/**/libraries/
+/.idea/**/artifacts/
+/.idea/**/gradle.xml
+/.idea/**/workspace.xml
+/.idea/**/tasks.xml
+
+# Build output (just in case the IDE writes here)
+out/
+
+/.idea
